@@ -1,0 +1,64 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment/config secrets
+.env
+.env.*
+!.env.example
+
+# FastAPI / local runtime files
+*.log
+*.pid
+*.db
+*.sqlite
+*.sqlite3
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Robot Framework output
+output.xml
+log.html
+report.html
+xunit.xml
+robot_output/
+robot_results/
+results/
+screenshots/
+selenium-screenshot-*.png
+
+# Type checking / linting caches
+.mypy_cache/
+.pyright/
+.ruff_cache/
+.tox/
+.nox/
+
+# Build/package artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
