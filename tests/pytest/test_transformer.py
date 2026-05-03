@@ -1,3 +1,5 @@
+import pytest
+
 from integration_demo.models import Priority, ServiceType
 from integration_demo.transformer import (
     calculate_sla,
@@ -50,3 +52,46 @@ def test_transform_service_request_to_case_maps_service_type_to_case_details(
     assert target_case.case_type == "INFRASTRUCTURE"
     assert target_case.title == "Broken street light"
     assert target_case.sla == "2 business days"
+
+
+@pytest.mark.parametrize(
+    ("service_type", "expected_case_type", "expected_title"),
+    [
+        (
+            ServiceType.BROKEN_STREET_LIGHT,
+            "INFRASTRUCTURE",
+            "Broken street light",
+        ),
+        (
+            ServiceType.SNOW_CLEARING,
+            "INFRASTRUCTURE",
+            "Snow clearing request",
+        ),
+        (
+            ServiceType.WASTE_MANAGEMENT,
+            "ENVIRONMENT",
+            "Waste management issue",
+        ),
+        (
+            ServiceType.GENERAL_FEEDBACK,
+            "GENERAL",
+            "General feedback",
+        ),
+    ],
+)
+def test_transform_service_request_to_case_maps_each_service_type_to_case_details(
+    valid_service_request,
+    valid_customer,
+    service_type,
+    expected_case_type,
+    expected_title,
+):
+    valid_service_request.service_type = service_type
+
+    target_case = transform_service_request_to_case(
+        valid_service_request,
+        valid_customer,
+    )
+
+    assert target_case.case_type == expected_case_type
+    assert target_case.title == expected_title

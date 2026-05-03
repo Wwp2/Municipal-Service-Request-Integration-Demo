@@ -16,6 +16,30 @@ You can find more information about it in docs\ai-usage.md
 
 The goal is to practice API design, data validation, data transformation, error handling, idempotency, automated testing, and documentation.
 
+## 2. System context diagram
+
+flowchart LR
+    source["Service Request Source<br/>(API client or external system)"]
+
+    integration["Municipal Service Request<br/>Integration Demo"]
+
+    customer["Mock Customer System<br/>(customer lookup)"]
+
+    caseSystem["Mock Case Management System<br/>(target system)"]
+
+    database[("SQLite Database<br/>integration runs and failed requests")]
+
+    source -->|"Service request"| integration
+
+    integration -->|"Customer lookup"| customer
+    customer -->|"Customer data"| integration
+
+    integration -->|"Transformed target case"| caseSystem
+    caseSystem -->|"Target case id or error"| integration
+
+    integration -->|"Save integration status<br/>and failed requests"| database
+    integration -->|"Integration result"| source
+
 
 
 * [**database.py**](src\integration_demo\database.py) creates the database management logic with SQLite and creates the main database for the system to store data.

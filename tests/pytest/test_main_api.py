@@ -1,10 +1,3 @@
-import pytest
-
-pytest.importorskip(
-    "httpx",
-    reason="FastAPI TestClient route tests require the httpx dev dependency.",
-)
-
 from fastapi.testclient import TestClient
 
 from integration_demo import database
@@ -35,6 +28,32 @@ def test_create_service_request_endpoint_accepts_valid_payload(
     assert response_body["request_id"] == "REQ-123"
     assert response_body["status"] == "SUCCESS"
     assert response_body["target_case_id"].startswith("CASE-")
+
+
+def test_create_service_request_endpoint_returns_duplicate_for_repeated_request(
+    temporary_database_path,
+    valid_service_request_payload,
+):
+    with TestClient(app) as client:
+        first_response = client.post(
+            "/api/v1/service-requests",
+            json=valid_service_request_payload,
+        )
+        second_response = client.post(
+            "/api/v1/service-requests",
+            json=valid_service_request_payload,
+        )
+
+    first_response_body = first_response.json()
+    second_response_body = second_response.json()
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response_body["status"] == "SUCCESS"
+    assert second_response_body["status"] == "DUPLICATE"
+    assert (
+        second_response_body["target_case_id"]
+        == first_response_body["target_case_id"]
+    )
 
 
 def test_create_service_request_endpoint_rejects_invalid_payload(

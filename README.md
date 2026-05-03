@@ -9,6 +9,7 @@ The documentation is divided into three main the areas listed below:
 
 - `platform-mapping.md`  
   This goes through how the integration thinking in this project could relate to concepts used in larger enterprise platforms.
+  For example it tries to answer the question: "what would a larger corporation use instead of FastAPI?".
 
 - `ai-usage.md`  
   This contains a description of how AI was used in creating the project.
