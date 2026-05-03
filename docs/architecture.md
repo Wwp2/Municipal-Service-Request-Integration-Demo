@@ -1,10 +1,29 @@
 
+## 1. Purpose
+
+### Project purpose
+
+This is a junior-level learning project that demonstrates a small integration process between a public service request system and a case management system.
+
+In this demo a client can send it a service request that is then validated, enriched with customer data, and then tranformed in to a target case, and the system then simulates sending it to a case management system.
+
+The idea behind this project was to create a simple working demo system of APIs and database management and not a complete, field ready production system.
+
+AI was used in this project.
+You can find more information about it in docs\ai-usage.md
+
+### Learning goals
+
+The goal is to practice API design, data validation, data transformation, error handling, idempotency, automated testing, and documentation.
+
+
+
 * [**database.py**](src\integration_demo\database.py) creates the database management logic with SQLite and creates the main database for the system to store data.
 This creates a integration_demo.db to store integration run history and failed messages.
 
-* [**intergration_service.py**](src\integration_demo\intergration_service.py) contains the main intergration workflow for processing service requests.
+* [**integration_service.py**](src\integration_demo\integration_service.py) contains the main intergration workflow for processing service requests.
 It connects the database, mock customer data, transformer, and target system simulation together.
-It handles successful requests, duplicate requests, and failed requests, and returns an IntegrationResult for the API response.
+It handles successful requests, duplicate requests, and failed requests, and returns an Integration Result for the API response.
 
 * [**main.py**](src\integration_demo\main.py) contains the FastApi application and defines all of the API endpoints used by the system.
 It is also responsible for launching the app and keeping it running with uvicorn.
