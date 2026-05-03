@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from integration_demo.models import IntegrationStatus
@@ -58,7 +58,7 @@ def save_integration_run(
                 status.value,
                 message,
                 target_case_id,
-                datetime.utcnow().isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
 
@@ -98,6 +98,6 @@ def save_dead_letter(
                 request_id,
                 error_message,
                 json.dumps(payload),
-                datetime.utcnow().isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
