@@ -1,0 +1,31 @@
+[project]
+name = "municipal-service-request-integration"
+version = "0.1.0"
+description = "Junior-level integration demo for municipal service requests"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "httpx",
+    "robotframework",
+    "robotframework-requests",
+    "ruff",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
