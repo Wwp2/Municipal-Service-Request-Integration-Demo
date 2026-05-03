@@ -18,6 +18,11 @@ The goal is to practice API design, data validation, data transformation, error 
 
 ## 2. System context diagram
 
+This diagram shows the main systems involved in the demo and the high-level data flow between them. 
+The integration demo receives a service request, uses mock systems for customer lookup and case creation, and stores integration results in a local SQLite database. 
+Internal implementation details are described in later sections.
+
+```mermaid
 flowchart LR
     source["Service Request Source<br/>(API client or external system)"]
 
@@ -39,7 +44,7 @@ flowchart LR
 
     integration -->|"Save integration status<br/>and failed requests"| database
     integration -->|"Integration result"| source
-
+```
 
 
 * [**database.py**](src\integration_demo\database.py) creates the database management logic with SQLite and creates the main database for the system to store data.
