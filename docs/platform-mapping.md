@@ -1,112 +1,97 @@
-# Platform Mapping
+# Platform mapping
 
-This project is a small integration demo for municipal service requests. It
-models the same basic responsibilities that larger integration platforms often
-handle: receiving an API request, validating data, transforming it into a target
-format, calling another system, tracking processing status, and storing failed
-messages for later analysis.
+## 1. Purpose of this document
 
-## System Map
+This document describes how the concepts in this local Python/FastAPI/SQLite integration demo could map to common integration platform concepts.
 
-The diagram below is a Mermaid flowchart that shows how the main source files
-and system responsibilities connect to each other.
+The project itself is not implemented with Azure, MuleSoft, or Frends. Instead, it demonstrates integration fundamentals in a small local application: API design, validation, transformation, orchestration, persistence, error handling, idempotency, and documentation.
 
-```mermaid
-flowchart LR
-    client["API client or browser"]
+The goal of this document is to connect the demo implementation to platform-level thinking without claiming production experience with these platforms.
 
-    subgraph api["FastAPI application - main.py"]
-        health["GET /health"]
-        createRequest["POST /api/v1/service-requests"]
-        getRun["GET /api/v1/integration-runs/{request_id}"]
-        lifespan["lifespan startup"]
-    end
+## 2. Conceptual mapping overview
 
-    subgraph models["Pydantic models - models.py"]
-        serviceRequest["ServiceRequest"]
-        customer["Customer"]
-        targetCase["TargetCase"]
-        integrationResult["IntegrationResult"]
-    end
+| Demo concept | Azure concept | MuleSoft concept | Frends concept |
+|---|---|---|---|
+| Incoming API endpoint | API Management or HTTP-triggered Azure Function | API endpoint / Experience API | HTTP Trigger |
+| Integration orchestration | Azure Function, Container App, or Logic App | Mule flow / Process API | Frends Process |
+| Customer lookup | HTTP call to backend service or database | System API or connector call | Task calling an external system |
+| Data transformation | Function code, mapping logic, or Logic Apps transformation | DataWeave transformation | Mapping logic inside a Process or Task |
+| Target case creation | HTTP call, queue message, or backend connector | Connector call to target system | HTTP Task or connector Task |
+| Integration run storage | Azure SQL, Table Storage, Cosmos DB, or Application logging | Object store, logging, or platform monitoring | Process execution history and logging |
+| Dead letter handling | Service Bus dead-letter queue or error storage | Error handler / error routing | Process error handling / monitoring |
+| Idempotency | Database constraint, request id tracking, Service Bus duplicate detection, or distributed state | Flow logic, object store, or idempotent consumer pattern | Process logic with stored request identifiers |
+| Monitoring | Azure Monitor / Application Insights | Anypoint Monitoring / Visualizer | Frends monitoring dashboard |
 
-    subgraph service["Integration orchestration - integration_service.py"]
-        duplicateCheck["Check previous integration run"]
-        customerLookup["Look up customer"]
-        transformStep["Transform request to target case"]
-        targetCreate["Create target case"]
-        successResult["Return success or duplicate result"]
-        failureResult["Return failed result"]
-    end
+## 3. Azure mapping
 
-    subgraph transform["Transformation rules - transformer.py"]
-        serviceTypeMap["Map service type to case title and type"]
-        slaMap["Calculate SLA from priority"]
-    end
+In an Azure-based version of this demo, the incoming API could be exposed through Azure API Management or an HTTP-triggered compute component such as Azure Functions.
 
-    subgraph mockSystems["Mock external systems - mock_data.py"]
-        mockCustomerSystem["Mock customer system"]
-        mockCaseSystem["Mock case management system"]
-    end
+The integration orchestration could be implemented with Azure Functions, Container Apps, or Logic Apps depending on the requirements. The customer lookup and target case creation would likely be implemented as HTTP calls, connector calls, or messages passed through Azure services.
 
-    subgraph database["SQLite persistence - database.py"]
-        initDb["Create tables on startup"]
-        integrationRuns[("integration_runs")]
-        deadLetters[("dead_letters")]
-    end
+For asynchronous or more resilient processing, Azure Service Bus could be used between the source system and the integration logic. Failed messages could be routed to a dead-letter queue for later inspection and reprocessing.
 
-    client --> health
-    client --> createRequest
-    client --> getRun
+The local SQLite database in this demo could be replaced with a cloud persistence option such as Azure SQL, Table Storage, or Cosmos DB depending on requirements. Monitoring and diagnostics would likely be handled with Azure Monitor and Application Insights.
 
-    lifespan --> initDb
-    initDb --> integrationRuns
-    initDb --> deadLetters
+## 4. MuleSoft mapping
 
-    createRequest --> serviceRequest
-    serviceRequest --> duplicateCheck
-    duplicateCheck --> integrationRuns
-    duplicateCheck --> successResult
+In a MuleSoft-based version, the integration could be modeled as an API-led flow.
 
-    duplicateCheck --> customerLookup
-    customerLookup --> mockCustomerSystem
-    customerLookup --> transformStep
-    transformStep --> serviceTypeMap
-    transformStep --> slaMap
-    transformStep --> targetCase
-    targetCase --> targetCreate
-    targetCreate --> mockCaseSystem
-    targetCreate --> integrationRuns
-    targetCreate --> successResult
+One possible conceptual split would be:
 
-    customerLookup --> failureResult
-    targetCreate --> failureResult
-    failureResult --> integrationRuns
-    failureResult --> deadLetters
-    successResult --> integrationResult
+| Layer | Possible responsibility |
+|---|---|
+| Experience API | Receives service requests from the source system |
+| Process API | Orchestrates validation, customer lookup, transformation, and target case creation |
+| System API | Provides access to customer data and the case management system |
 
-    getRun --> integrationRuns
-```
+The transformation from `ServiceRequest` and `Customer` into `TargetCase` could conceptually be implemented with MuleSoft transformation logic such as DataWeave.
 
-## Platform Responsibilities
+Error handling could be implemented with Mule error handlers. For example, customer lookup errors, target system errors, and unexpected processing errors could be routed through defined error paths and logged or sent to an operational process for investigation.
 
-| Platform concept | Where it appears in this project | Purpose |
-| --- | --- | --- |
-| API gateway or inbound API | `main.py` | Exposes HTTP endpoints for health checks, new service requests, and integration-run lookup. |
-| Data contract and validation | `models.py` | Uses Pydantic models to define accepted request data and returned result data. |
-| Orchestration | `integration_service.py` | Controls the process flow from duplicate check to customer lookup, transformation, target creation, and error handling. |
-| Transformation | `transformer.py` | Converts an inbound municipal service request into the target case format. |
-| Source or reference system | `mock_data.py` customer data | Simulates looking up customer information from another system. |
-| Target system | `mock_data.py` case creation | Simulates sending the transformed case to a case management system. |
-| Operational tracking | `database.py` `integration_runs` table | Stores status, messages, target case IDs, and timestamps for processed requests. |
-| Dead-letter handling | `database.py` `dead_letters` table | Stores failed payloads and error messages for later inspection. |
+## 5. Frends mapping
 
-## Main Flow
+In a Frends-based version, the integration could be modeled as a Process started by an HTTP Trigger.
 
-1. A client sends a service request to `POST /api/v1/service-requests`.
-2. FastAPI validates the request using the `ServiceRequest` Pydantic model.
-3. The integration service checks whether the request ID has already been processed.
-4. If the request is new, the service looks up the customer from mock customer data.
-5. The transformer maps the request into a `TargetCase`.
-6. The mock case management function creates a fake target case ID.
-7. The result is saved into `integration_runs` and returned as an `IntegrationResult`.
-8. If processing fails, the failed run is saved and the payload is written to `dead_letters`.
+A simplified Frends-style flow could look like this:
+
+| Demo step | Frends-style concept |
+|---|---|
+| Receive service request | HTTP Trigger |
+| Validate request | Process logic or validation Task |
+| Check duplicate request id | Task querying stored integration run data |
+| Look up customer | Task calling a customer system |
+| Transform request to target case | Mapping logic inside the Process |
+| Create target case | HTTP Task or connector Task |
+| Store integration result | Task writing to persistence or platform logging |
+| Handle failure | Error handling path, Throw/Catch logic, monitoring |
+
+The mock systems in this demo represent external dependencies that would normally be configured as real system calls or connectors in Frends.
+
+## 6. What this project does not claim
+
+This project does not claim to be a production-ready integration platform implementation.
+
+It does not include:
+
+- real Azure, MuleSoft, or Frends deployment
+- production API security
+- cloud infrastructure
+- distributed message handling
+- production monitoring
+- real external system credentials or connectors
+- high availability or scaling configuration
+
+The purpose is to demonstrate understanding of integration concepts in a small, inspectable learning project.
+
+## 7. Platform-specific next learning steps
+
+Based on this demo, the next useful learning areas would be:
+
+| Topic | Why it matters |
+|---|---|
+| API gateway concepts | To understand security, routing, throttling, and API lifecycle management |
+| Message queues and dead-letter queues | To understand more resilient asynchronous integration patterns |
+| OAuth2 and API authentication | To understand secure system-to-system communication |
+| Platform monitoring | To understand how production integrations are observed and debugged |
+| Hands-on Frends or MuleSoft tutorial | To connect the Python demo concepts to a real integration platform |
+| Azure Functions and Service Bus | To learn how a similar integration could be implemented in Azure |
