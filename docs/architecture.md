@@ -84,7 +84,28 @@ sequenceDiagram
     API-->>Client: 200 OK with integration result
 ```
 
-## 4. Components
+## 4. Running the Demo
+
+The easiest way to start the API is from the repository root:
+
+```powershell
+python scripts\run_api.py
+```
+
+The runner script adds the `src` folder to the Python path and starts Uvicorn
+with the FastAPI application from `integration_demo.main:app`.
+
+When the API is running, the main browser entry point is the automatic FastAPI
+documentation page:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+The application creates the SQLite tables during FastAPI startup if they do not
+already exist.
+
+## 5. Components
 
 #### 1. API layer
 
@@ -116,7 +137,7 @@ In a real scenario this could be replaced with proper api calls to another syste
 * [**database.py**](../src/integration_demo/database.py) creates the database management logic with SQLite and creates the main database for the system to store data.
 This creates a integration_demo.db to store integration run history and failed messages.
 
-## 5. Data model overview
+## 6. Data model overview
 
 The integration uses Pydantic models to define the structure of the data that moves through the app. These models make the boundaries between the source request, customer lookup data, target system data, and API response explicit.
 
@@ -164,7 +185,7 @@ The project uses enums for values such as priority, service type, and integratio
 
 For example, invalid service types or priority values are rejected during validation instead of being handled later in the process. This makes the integration more predictable and easier to debug.
 
-## 6. Error handling
+## 7. Error handling
 
 The integration separates request validation errors from processing errors.
 
@@ -194,7 +215,7 @@ In a production integration platform, a similar idea could be implemented with a
 
 Duplicate request handling is treated as a controlled integration scenario rather than an unexpected failure. It is described separately in the Idempotency section.
 
-## 7. Idempotency
+## 8. Idempotency
 
 Idempotency is used to prevent the same service request from being processed multiple times.
 
@@ -228,7 +249,7 @@ The idempotency check is handled in the integration orchestration layer before c
 
 This is a simplified local implementation. In a production system, idempotency could also involve a dedicated idempotency key, request hashing, distributed locking, message deduplication, or database constraints depending on the architecture.
 
-## 8. Persistence
+## 9. Persistence
 
 The demo uses a local SQLite database to store integration run history and failed requests. The database is used to make the integration flow traceable and to support idempotency checks.
 
@@ -261,9 +282,7 @@ This persistence approach is intentionally simple and local to the demo.
 
 It does not include database migrations, distributed locking, production monitoring, retention policies, or advanced retry handling. These would be important considerations in a production integration system, but they are outside the scope of this learning project.
 
-## 9. Design decisions
-
-## 9. Design decisions and development stack
+## 10. Design decisions and development stack
 
 This project was designed as a small local integration demo. The goal was to keep the implementation understandable while still demonstrating important integration concepts such as API design, validation, transformation, error handling, idempotency, persistence, automated testing, and documentation.
 
