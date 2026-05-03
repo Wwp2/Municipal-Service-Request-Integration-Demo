@@ -5,9 +5,9 @@
 
 This is a junior-level learning project that demonstrates a small integration process between a public service request system and a case management system.
 
-In this demo a client can send it a service request that is then validated, enriched with customer data, and then tranformed in to a target case, and the system then simulates sending it to a case management system.
+In this demo a client can send it a service request that is then validated, enriched with customer data, and then transformed into a target case, and the system then simulates sending it to a case management system.
 
-The idea behind this project was to create a simple working demo system of APIs and database management and not a complete, field ready production system.
+The idea behind this project was to create a simple working demo system of APIs and database management and not a complete, production-ready system.
 
 AI was used in this project.
 You can find more information about it in docs\ai-usage.md
@@ -115,11 +115,11 @@ It is also responsible for launching the app and keeping it running with uvicorn
 #### 2. Data models
 
 * [**models.py**](../src/integration_demo/models.py) contains the shared Pydantic models used throughout the system.
-These models define the expected format of servide requests, customers and target cases.
+These models define the expected format of servise requests, customers and target cases.
 
 #### 3. Integration orchestration
 
-* [**integration_service.py**](../src/integration_demo/integration_service.py) contains the main intergration workflow for processing service requests.
+* [**integration_service.py**](../src/integration_demo/integration_service.py) contains the main integration workflow for processing service requests.
 It connects the database, mock customer data, transformer, and target system simulation together.
 It handles successful requests, duplicate requests, and failed requests, and returns an Integration Result for the API response.
 
@@ -234,7 +234,7 @@ flowchart LR
     request["Incoming service request"]
     check["Check integration_runs by request_id"]
     exists{"Previous run exists?"}
-    duplicate["Return DUPLICATE result with status=IntegrationStatus.FAILED"]
+    duplicate["Return DUPLICATE result"]
     process["Continue normal integration flow"]
     save["Save integration run"]
 
