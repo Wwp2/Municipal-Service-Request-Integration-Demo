@@ -18,8 +18,8 @@ The goal is to practice API design, data validation, data transformation, error 
 
 ## 2. System context diagram
 
-This diagram shows the main systems involved in the demo and the high-level data flow between them. 
-The integration demo receives a service request, uses mock systems for customer lookup and case creation, and stores integration results in a local SQLite database. 
+This Mermaid diagram shows the main systems involved in the demo and the high-level data flow between them. 
+
 Internal implementation details are described in later sections.
 
 ```mermaid
@@ -46,25 +46,123 @@ flowchart LR
     integration -->|"Integration result"| source
 ```
 
+## 3. Integration Flow
 
-* [**database.py**](src\integration_demo\database.py) creates the database management logic with SQLite and creates the main database for the system to store data.
-This creates a integration_demo.db to store integration run history and failed messages.
+A flow diagram of an example 'happy path' API service request.
 
-* [**integration_service.py**](src\integration_demo\integration_service.py) contains the main intergration workflow for processing service requests.
+The integration demo receives a service request, uses mock systems for customer lookup and case creation, and stores integration results in a local SQLite database. 
+
+
+```mermaid
+sequenceDiagram
+    participant Client as API client
+    participant API as FastAPI application
+    participant Service as Integration service
+    participant DB as SQLite database
+    participant Customer as Mock customer system
+    participant Transformer as Transformer
+    participant CaseSystem as Mock case management system
+
+    Client->>API: POST /api/v1/service-requests
+    API->>API: Validate request with Pydantic
+    API->>Service: Process service request
+
+    Service->>DB: Check existing integration run
+    DB-->>Service: No previous run found
+
+    Service->>Customer: Look up customer by customerId
+    Customer-->>Service: Customer data
+
+    Service->>Transformer: Transform ServiceRequest + Customer
+    Transformer-->>Service: TargetCase
+
+    Service->>CaseSystem: Create target case
+    CaseSystem-->>Service: Target case id
+
+    Service->>DB: Save successful integration run
+    Service-->>API: IntegrationResult SUCCESS
+    API-->>Client: 200 OK with integration result
+```
+
+## 4. Components
+
+#### 1. API layer
+
+* [**main.py**](../src/integration_demo/main.py) contains the FastApi application and defines all of the API endpoints used by the system.
+It is also responsible for launching the app and keeping it running with uvicorn.
+
+#### 2. Data models
+
+* [**models.py**](../src/integration_demo/models.py) contains the shared Pydantic models used throughout the system.
+These models define the expected format of servide requests, customers and target cases.
+
+#### 3. Integration orchestration
+
+* [**integration_service.py**](../src/integration_demo/integration_service.py) contains the main intergration workflow for processing service requests.
 It connects the database, mock customer data, transformer, and target system simulation together.
 It handles successful requests, duplicate requests, and failed requests, and returns an Integration Result for the API response.
 
-* [**main.py**](src\integration_demo\main.py) contains the FastApi application and defines all of the API endpoints used by the system.
-It is also responsible for launching the app and keeping it running with uvicorn.
+#### 4. Transformation logic
 
-* [**mock_data.py**](src\integration_demo\mock_data.py) contains mock customer data and helper functions that simulate an external customer case management system.
+* [**transformer.py**](../src/integration_demo/transformer.py) takes the service request data and customer data, and transforms it in to the case format the external target system expects.
+
+#### 5. Mock external systems
+
+* [**mock_data.py**](../src/integration_demo/mock_data.py) contains mock customer data and helper functions that simulate an external customer case management system.
 In a real scenario this could be replaced with proper api calls to another system.
 
-* [**models.py**](src\integration_demo\models.py) contains the shared Pydantic models used throughout the system.
-These models define the expected format of servide requests, customers and target cases.
+#### 6. Persistence layer
 
-* [**transformer.py**](src\integration_demo\transformer.py) takes the service request data and customer data, and transforms it in to the case format the external target system expects.
+* [**database.py**](../src/integration_demo/database.py) creates the database management logic with SQLite and creates the main database for the system to store data.
+This creates a integration_demo.db to store integration run history and failed messages.
 
+## 5. Data model overview
+
+The integration uses Pydantic models to define the structure of the data that moves through the app. These models make the boundaries between the source request, customer lookup data, target system data, and API response explicit.
+
+The main data transformation in this demo is:
+
+```text
+ServiceRequest + Customer -> TargetCase -> IntegrationResult
+```
+
+`ServiceRequest` represents the incoming request from the source system. The integration enriches it with `Customer` data from the mock customer system and transforms the combined data into a `TargetCase`, which represents the format expected by the mock case management system. The final response returned to the API caller is represented by `IntegrationResult`.
+
+```mermaid
+flowchart LR
+    serviceRequest["ServiceRequest<br/>(incoming source data)"]
+    customer["Customer<br/>(lookup / enrichment data)"]
+    targetCase["TargetCase<br/>(target system format)"]
+    integrationResult["IntegrationResult<br/>(API response)"]
+
+    serviceRequest -->|"validated by Pydantic"| targetCase
+    customer -->|"enriches request"| targetCase
+    targetCase -->|"case creation result"| integrationResult
+```
+
+| Model | Role in the integration | Notes |
+|---|---|---|
+| `ServiceRequest` | Incoming request from the source system | Contains the request id, customer id, service type, description, and priority |
+| `Customer` | Customer data used to enrich the service request | Returned by the mock customer system |
+| `TargetCase` | Target format sent to the mock case management system | Created by the transformation logic |
+| `IntegrationResult` | Response returned to the API caller | Contains the final status, message, and optional target case id |
+| `Priority` | Defines allowed priority values | Used to calculate the SLA |
+| `ServiceType` | Defines allowed service request types | Used to map the request to a case title and case type |
+| `IntegrationStatus` | Defines possible integration result states | Used for success, failed, and duplicate outcomes |
+
+### Source-to-target transformation
+
+The source system and target system use different data structures. The source system sends a `ServiceRequest`, but the mock case management system expects a `TargetCase`.
+
+The transformation step combines the incoming service request with customer data and applies simple mapping rules. For example, the service type is mapped into a case title and case type, while the priority is used to calculate an SLA value.
+
+Keeping this transformation logic separate from the main orchestration flow makes the application easier to understand, test, and extend.
+
+### Use of enums
+
+The project uses enums for values such as priority, service type, and integration status. This helps keep the accepted values explicit and prevents unsupported values from moving further into the integration flow.
+
+For example, invalid service types or priority values are rejected during validation instead of being handled later in the process. This makes the integration more predictable and easier to debug.
 
 
 ### Development stack explanation and reasoning:

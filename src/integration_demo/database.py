@@ -82,6 +82,12 @@ def get_integration_run_by_request_id(request_id: str) -> dict | None:
     return dict(row)
 
 
+def clear_integration_data():
+    with get_connection() as connection:
+        connection.execute("DELETE FROM dead_letters")
+        connection.execute("DELETE FROM integration_runs")
+
+
 def save_dead_letter(
     request_id: str,
     error_message: str,

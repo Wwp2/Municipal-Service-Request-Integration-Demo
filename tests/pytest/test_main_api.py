@@ -100,3 +100,21 @@ def test_get_integration_run_endpoint_returns_not_found_for_unknown_request_id(
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Integration run not found"}
+
+
+def test_clear_integration_data_endpoint_removes_saved_integration_data(
+    temporary_database_path,
+    valid_service_request_payload,
+):
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/v1/service-requests",
+            json=valid_service_request_payload,
+        )
+        clear_response = client.delete("/api/v1/admin/integration-data")
+        lookup_response = client.get("/api/v1/integration-runs/REQ-123")
+
+    assert create_response.status_code == 200
+    assert clear_response.status_code == 200
+    assert clear_response.json() == {"message": "Integration test data cleared"}
+    assert lookup_response.status_code == 404

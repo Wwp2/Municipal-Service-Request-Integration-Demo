@@ -146,3 +146,33 @@ def test_save_dead_letter_stores_error_message_and_payload(temporary_database_pa
     assert row[1] == "Target system rejected the case"
     assert json.loads(row[2]) == {"requestId": "REQ-FAIL"}
     assert row[3]
+
+
+def test_clear_integration_data_removes_integration_runs_and_dead_letters(
+    temporary_database_path,
+):
+    database.initialize_database()
+    database.save_integration_run(
+        request_id="REQ-123",
+        status=IntegrationStatus.SUCCESS,
+        message="Service request was successfully integrated",
+        target_case_id="CASE-123",
+    )
+    database.save_dead_letter(
+        request_id="REQ-FAIL",
+        error_message="Target system rejected the case",
+        payload={"requestId": "REQ-FAIL"},
+    )
+
+    database.clear_integration_data()
+
+    with sqlite3.connect(temporary_database_path) as connection:
+        integration_run_count = connection.execute(
+            "SELECT COUNT(*) FROM integration_runs"
+        ).fetchone()[0]
+        dead_letter_count = connection.execute(
+            "SELECT COUNT(*) FROM dead_letters"
+        ).fetchone()[0]
+
+    assert integration_run_count == 0
+    assert dead_letter_count == 0

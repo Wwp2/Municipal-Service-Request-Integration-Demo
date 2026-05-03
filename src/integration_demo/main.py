@@ -9,6 +9,7 @@ if __package__ in {None, ""}:
 
 # Allow `python main.py` from this directory while keeping package-style imports.
 from integration_demo.database import (  # noqa: E402
+    clear_integration_data,
     initialize_database,
     get_integration_run_by_request_id,
 )
@@ -50,6 +51,13 @@ def get_integration_run(request_id: str):
         raise HTTPException(status_code=404, detail="Integration run not found")
 
     return integration_run
+
+
+@app.delete("/api/v1/admin/integration-data")
+def clear_integration_data_endpoint():
+    clear_integration_data()
+    return {"message": "Integration test data cleared"}
+# Important note: this is an admin/testing endpoint. For a real production API, this would need authentication or an environment guard.
 
 
 if __name__ == "__main__":
