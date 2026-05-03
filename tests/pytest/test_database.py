@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from datetime import datetime
 
 from integration_demo import database
 from integration_demo.models import IntegrationStatus
@@ -81,6 +82,7 @@ def test_save_integration_run_stores_status_message_and_target_case_id(
     assert integration_run["message"] == "Service request was successfully integrated"
     assert integration_run["target_case_id"] == "CASE-123"
     assert integration_run["created_at"]
+    assert datetime.fromisoformat(integration_run["created_at"]).tzinfo is not None
 
 
 def test_save_integration_run_replaces_existing_row_for_same_request_id(
@@ -146,6 +148,7 @@ def test_save_dead_letter_stores_error_message_and_payload(temporary_database_pa
     assert row[1] == "Target system rejected the case"
     assert json.loads(row[2]) == {"requestId": "REQ-FAIL"}
     assert row[3]
+    assert datetime.fromisoformat(row[3]).tzinfo is not None
 
 
 def test_clear_integration_data_removes_integration_runs_and_dead_letters(

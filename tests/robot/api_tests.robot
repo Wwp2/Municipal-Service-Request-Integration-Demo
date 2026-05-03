@@ -41,11 +41,16 @@ Create Same Service Request Twice Returns Duplicate Result
 Invalid Service Request Returns Validation Error
     ${payload}=    Create Valid Service Request Payload    ROBOT-INVALID-001
     Set To Dictionary    ${payload}    description=Too short
-    POST On Session
+    ${response}=    POST On Session
     ...    api
     ...    ${SERVICE_REQUEST_ENDPOINT}
     ...    json=${payload}
     ...    expected_status=422
+    ${body}=    Set Variable    ${response.json()}
+    Should Be True    isinstance($body["detail"], list)
+    Should Be Equal    ${body}[detail][0][type]    string_too_short
+    Should Be Equal    ${body}[detail][0][loc][0]    body
+    Should Be Equal    ${body}[detail][0][loc][1]    description
 
 Unknown Customer Returns Failed Integration Result
     ${payload}=    Create Valid Service Request Payload    ROBOT-MISSING-CUSTOMER-001
@@ -77,6 +82,22 @@ Integration Run Can Be Fetched After Processing
     Should Be Equal    ${lookup_body}[request_id]    ROBOT-LOOKUP-001
     Should Be Equal    ${lookup_body}[status]    SUCCESS
     Should Be Equal    ${lookup_body}[target_case_id]    ${create_body}[target_case_id]
+
+Failed Integration Run Can Be Fetched After Processing
+    ${payload}=    Create Valid Service Request Payload    ROBOT-FAILED-LOOKUP-001
+    Set To Dictionary    ${payload}    customerId=CUST-MISSING
+    ${create_response}=    Create Service Request    ${payload}
+    ${create_body}=    Set Variable    ${create_response.json()}
+    ${lookup_response}=    GET On Session
+    ...    api
+    ...    ${INTEGRATION_RUN_ENDPOINT}/ROBOT-FAILED-LOOKUP-001
+    ...    expected_status=200
+    ${lookup_body}=    Set Variable    ${lookup_response.json()}
+    Should Be Equal    ${create_body}[status]    FAILED
+    Should Be Equal    ${lookup_body}[request_id]    ROBOT-FAILED-LOOKUP-001
+    Should Be Equal    ${lookup_body}[status]    FAILED
+    Should Be Equal    ${lookup_body}[message]    Customer not found: CUST-MISSING
+    Should Be Equal    ${lookup_body}[target_case_id]    ${None}
 
 Unknown Integration Run Returns Not Found
     ${response}=    GET On Session

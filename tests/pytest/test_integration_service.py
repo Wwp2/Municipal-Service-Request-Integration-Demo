@@ -55,6 +55,33 @@ def test_process_service_request_returns_failed_when_customer_cannot_be_found(
     assert result.status == IntegrationStatus.FAILED
     assert result.message == "Customer not found: CUST-MISSING"
     assert integration_run["status"] == "FAILED"
+    assert integration_run["target_case_id"] is None
+
+
+def test_process_service_request_writes_dead_letter_when_customer_cannot_be_found(
+    temporary_database_path,
+    valid_service_request_payload,
+):
+    database.initialize_database()
+    valid_service_request_payload["requestId"] = "REQ-MISSING-CUSTOMER"
+    valid_service_request_payload["customerId"] = "CUST-MISSING"
+    request = ServiceRequest(**valid_service_request_payload)
+
+    result = process_service_request(request)
+
+    with sqlite3.connect(temporary_database_path) as connection:
+        row = connection.execute(
+            """
+            SELECT request_id, error_message
+            FROM dead_letters
+            WHERE request_id = ?
+            """,
+            ("REQ-MISSING-CUSTOMER",),
+        ).fetchone()
+
+    assert result.status == IntegrationStatus.FAILED
+    assert row[0] == "REQ-MISSING-CUSTOMER"
+    assert row[1] == "Customer not found: CUST-MISSING"
 
 
 def test_process_service_request_writes_dead_letter_when_processing_fails(
@@ -76,3 +103,5 @@ def test_process_service_request_writes_dead_letter_when_processing_fails(
     assert result.status == IntegrationStatus.FAILED
     assert result.message == "Target system rejected the case"
     assert dead_letter_count == 1
+    integration_run = database.get_integration_run_by_request_id(request.request_id)
+    assert integration_run["target_case_id"] is None

@@ -69,6 +69,10 @@ def test_create_service_request_endpoint_rejects_invalid_payload(
         )
 
     assert response.status_code == 422
+    response_body = response.json()
+    assert isinstance(response_body["detail"], list)
+    assert response_body["detail"][0]["type"] == "string_too_short"
+    assert response_body["detail"][0]["loc"] == ["body", "description"]
 
 
 def test_get_integration_run_endpoint_returns_saved_integration_run(
@@ -90,6 +94,33 @@ def test_get_integration_run_endpoint_returns_saved_integration_run(
     assert response_body["request_id"] == "REQ-LOOKUP"
     assert response_body["status"] == "SUCCESS"
     assert response_body["target_case_id"] == "CASE-LOOKUP"
+
+
+def test_get_integration_run_endpoint_returns_failed_run_after_processing_failure(
+    temporary_database_path,
+    valid_service_request_payload,
+):
+    valid_service_request_payload["requestId"] = "REQ-MISSING-CUSTOMER"
+    valid_service_request_payload["customerId"] = "CUST-MISSING"
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/v1/service-requests",
+            json=valid_service_request_payload,
+        )
+        lookup_response = client.get(
+            "/api/v1/integration-runs/REQ-MISSING-CUSTOMER"
+        )
+
+    create_body = create_response.json()
+    lookup_body = lookup_response.json()
+    assert create_response.status_code == 200
+    assert lookup_response.status_code == 200
+    assert create_body["status"] == "FAILED"
+    assert lookup_body["request_id"] == "REQ-MISSING-CUSTOMER"
+    assert lookup_body["status"] == "FAILED"
+    assert lookup_body["message"] == "Customer not found: CUST-MISSING"
+    assert lookup_body["target_case_id"] is None
 
 
 def test_get_integration_run_endpoint_returns_not_found_for_unknown_request_id(
